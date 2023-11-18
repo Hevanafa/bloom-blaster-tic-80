@@ -16,6 +16,8 @@ sh = 136
 p_cx = sw / 2
 p_cy = sh / 2
 
+toolbar_start = sw // 2 - 100
+
 # p_grid_x = 12
 # p_grid_y = 5
 P_MAX_REACH = 1024
@@ -29,6 +31,7 @@ well_cy = sh - 20
 TOOL_SHOVEL = 0
 TOOL_PAIL = 1
 TOOL_SEEDS = 2
+TOOL_SICKLE = 3
 
 p_active_tool = 0
 
@@ -65,10 +68,10 @@ def TIC():
 	# hide mouse cursor
 	poke(0x3ffb, 0)
 
-	if keyp(28): p_active_tool = 0
-	if keyp(29): p_active_tool = 1
-	if keyp(30): p_active_tool = 2
-	if keyp(31): p_active_tool = 3
+	if keyp(28): p_active_tool = TOOL_SHOVEL
+	if keyp(29): p_active_tool = TOOL_PAIL
+	if keyp(30): p_active_tool = TOOL_SEEDS
+	if keyp(31): p_active_tool = TOOL_SICKLE
 
 	if key(23):
 		p_cy -= 0.5
@@ -90,28 +93,36 @@ def TIC():
 	if mleft != last_mleft:
 		last_mleft = mleft
 
-		if mleft and getDist(mx, p_cx, my, p_cy) <= P_MAX_REACH:
-			# Note: match-case isn't supported
-			if p_active_tool == TOOL_SHOVEL:
-				soil = findSoilPatch(mx, my)
+		if mleft:
+			if toolbar_start <= mx and mx <= toolbar_start + 17 * 4:
+				p_active_tool = (mx - toolbar_start) // 17
 
-				if soil is None:
-					soil_patches.append(Soil(mx, my))
-			elif p_active_tool == TOOL_PAIL:
-				if p_water > 0:
+			if getDist(mx, p_cx, my, p_cy) <= P_MAX_REACH:
+				# Note: match-case isn't supported
+				if p_active_tool == TOOL_SHOVEL:
 					soil = findSoilPatch(mx, my)
 
-					if soil and not soil.watered:
-						p_water -= 1
-						soil.watered = True
-			elif p_active_tool == TOOL_SEEDS:
-				soil = findSoilPatch(mx, my)
+					if soil is None:
+						soil_patches.append(Soil(mx, my))
+				elif p_active_tool == TOOL_PAIL:
+					if p_water > 0:
+						soil = findSoilPatch(mx, my)
 
-				if soil:
-					soil.has_seeds = True
+						if soil and not soil.watered:
+							p_water -= 1
+							soil.watered = True
+				elif p_active_tool == TOOL_SEEDS:
+					soil = findSoilPatch(mx, my)
+
+					if soil:
+						soil.has_seeds = True
 
 	if p_water < P_MAX_WATER and p_active_tool == 1 and getDist(well_cx, p_cx, well_cy, p_cy) < 100:
 		p_water = P_MAX_WATER
+
+	for soil in soil_patches:
+		if soil.has_seeds and soil.watered and soil.growth_stage < 240:
+			soil.growth_stage += 1
 
 
 	cls(5)
@@ -125,7 +136,7 @@ def TIC():
 		spr(soil.watered and 66 or 65, soil.grid_x * 8, soil.grid_y * 8)
 
 		if soil.has_seeds:
-			spr(67, soil.grid_x * 8, soil.grid_y * 8, 0)
+			spr(69 + soil.growth_stage // 60, soil.grid_x * 8, soil.grid_y * 8, 0)
 
 	# highlight tile
 	if getDist(mx, p_cx, my, p_cy) < P_MAX_REACH:
@@ -137,7 +148,7 @@ def TIC():
 
 	# toolbar
 	for a in range(0, 4):
-		x = sw // 2 - 100 + a * 17
+		x = toolbar_start + a * 17
 		y = sh - 20
 
 		rectb(x - 1, y - 1, 18, 18, 1)
