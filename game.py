@@ -1,11 +1,11 @@
 # title:   Bloom Blaster
 # author:  Hevanafa
-# desc:	short description
+# desc:    Farming simulator
 # license: MIT License
 # version: 0.1
 # script:  python
 
-from typings import btn, cls, key, keyp, poke, rectb, spr, mouse
+from typings import btn, circ, circb, cls, key, keyp, poke, rect, rectb, spr, mouse
 
 def getDist(x1: float, x2: float, y1: float, y2: float):
 	return (x2 - x1) ** 2 + (y2 - y1) ** 2
@@ -18,8 +18,12 @@ py = sh / 2
 
 p_grid_x = 12
 p_grid_y = 5
-p_water = 0
+MAX_WATER = 4
+p_water = MAX_WATER
 p_money = 0
+
+well_x = sw / 2
+well_y = sh - 20
 
 p_active_tool = 0
 
@@ -48,6 +52,7 @@ last_mleft = False
 
 def TIC():
 	global t, px, py, p_grid_x, p_grid_y, p_active_tool
+	global p_water, well_x, well_y
 	global last_mleft
 
 	# hide mouse cursor
@@ -72,14 +77,13 @@ def TIC():
 		pass
 
 
+	# check mouse inputs
 	mx, my, mleft, *_ = mouse()
 	
 	if mleft != last_mleft:
 		last_mleft = mleft
 
-		skip = False
-
-		if getDist(mx, px, my, py) <= 1600:
+		if mleft and getDist(mx, px, my, py) <= 1600:
 			# Note: match-case isn't supported
 			if p_active_tool == 0:
 				soil = findSoilPatch(mx, my)
@@ -87,18 +91,27 @@ def TIC():
 				if soil is None:
 					soil_patches.append(Soil(mx, my))
 			elif p_active_tool == 1:
-				soil = findSoilPatch(mx, my)
+				if p_water > 0:
+					soil = findSoilPatch(mx, my)
 
-				if soil:
-					soil.watered = True
+					if soil and not soil.watered:
+						p_water -= 1
+						soil.watered = True
 			elif p_active_tool == 2:
 				soil = findSoilPatch(mx, my)
 
 				if soil:
 					soil.has_seeds = True
 
+	if p_water < MAX_WATER and getDist(well_x, px, well_y, py) < 100:
+		p_water = MAX_WATER
+
 
 	cls(0)
+
+	# well
+	circb(int(well_x), int(well_y), 10, 12)
+	spr(7, int(well_x), int(well_y), 0, w=2, h=2)
 
 	# soil patches
 	for soil in soil_patches:
@@ -123,6 +136,12 @@ def TIC():
 		rectb(x - 1, y - 1, 18, 18, 5)
 
 		spr(81 + a, x, y, 0, 2)
+
+	# water progress bar
+	spr(39, 4, 4, 0)
+	perc = p_water / MAX_WATER
+	rect(15, 5, round(perc * 20), 6, 12)
+	rectb(15, 5, 20, 6, 7)
 
 	rectb(sw // 2 - 101 + p_active_tool * 17, sh - 21, 18, 18, 7)
 	
