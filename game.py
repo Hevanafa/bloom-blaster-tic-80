@@ -13,19 +13,25 @@ def getDist(x1: float, x2: float, y1: float, y2: float):
 sw = 240
 sh = 136
 
-px = sw / 2
-py = sh / 2
+p_cx = sw / 2
+p_cy = sh / 2
 
-p_grid_x = 12
-p_grid_y = 5
-MAX_WATER = 4
-p_water = MAX_WATER
+# p_grid_x = 12
+# p_grid_y = 5
+P_MAX_REACH = 1024
+P_MAX_WATER = 4
+p_water = P_MAX_WATER
 p_money = 0
 
-well_x = sw / 2
-well_y = sh - 20
+well_cx = sw / 2
+well_cy = sh - 20
+
+TOOL_SHOVEL = 0
+TOOL_PAIL = 1
+TOOL_SEEDS = 2
 
 p_active_tool = 0
+
 
 class Soil:
 	def __init__(self, mx = -1, my = -1):
@@ -33,6 +39,7 @@ class Soil:
 		self.grid_y = getGridN(my)
 		self.watered = False
 		self.has_seeds = False
+		self.growth_stage = 0  # only increases when there are seeds
 
 soil_patches: list[Soil] = []
 
@@ -51,8 +58,8 @@ def findSoilPatch(mx: int, my: int) -> Soil:
 last_mleft = False
 
 def TIC():
-	global t, px, py, p_grid_x, p_grid_y, p_active_tool
-	global p_water, well_x, well_y
+	global t, p_cx, p_cy, p_grid_x, p_grid_y, p_active_tool
+	global p_water, well_cx, well_cy
 	global last_mleft
 
 	# hide mouse cursor
@@ -64,14 +71,14 @@ def TIC():
 	if keyp(31): p_active_tool = 3
 
 	if key(23):
-		py -= 0.5
+		p_cy -= 0.5
 	if key(19):
-		py += 0.5
+		p_cy += 0.5
 
 	if key(1):
-		px -= 0.5
+		p_cx -= 0.5
 	if key(4):
-		px += 0.5
+		p_cx += 0.5
 
 	if keyp(49): # TAB
 		pass
@@ -83,35 +90,35 @@ def TIC():
 	if mleft != last_mleft:
 		last_mleft = mleft
 
-		if mleft and getDist(mx, px, my, py) <= 1600:
+		if mleft and getDist(mx, p_cx, my, p_cy) <= P_MAX_REACH:
 			# Note: match-case isn't supported
-			if p_active_tool == 0:
+			if p_active_tool == TOOL_SHOVEL:
 				soil = findSoilPatch(mx, my)
 
 				if soil is None:
 					soil_patches.append(Soil(mx, my))
-			elif p_active_tool == 1:
+			elif p_active_tool == TOOL_PAIL:
 				if p_water > 0:
 					soil = findSoilPatch(mx, my)
 
 					if soil and not soil.watered:
 						p_water -= 1
 						soil.watered = True
-			elif p_active_tool == 2:
+			elif p_active_tool == TOOL_SEEDS:
 				soil = findSoilPatch(mx, my)
 
 				if soil:
 					soil.has_seeds = True
 
-	if p_water < MAX_WATER and getDist(well_x, px, well_y, py) < 100:
-		p_water = MAX_WATER
+	if p_water < P_MAX_WATER and p_active_tool == 1 and getDist(well_cx, p_cx, well_cy, p_cy) < 100:
+		p_water = P_MAX_WATER
 
 
-	cls(0)
+	cls(5)
 
 	# well
-	circb(int(well_x), int(well_y), 10, 12)
-	spr(7, int(well_x), int(well_y), 0, w=2, h=2)
+	circb(int(well_cx), int(well_cy), 10, 12)
+	spr(7, int(well_cx - 8), int(well_cy), 11, w=2, h=2)
 
 	# soil patches
 	for soil in soil_patches:
@@ -121,29 +128,35 @@ def TIC():
 			spr(67, soil.grid_x * 8, soil.grid_y * 8, 0)
 
 	# highlight tile
-	if getDist(mx, px, my, py) < 1600:
+	if getDist(mx, p_cx, my, p_cy) < P_MAX_REACH:
 		block_x, block_y = mx // 8 * 8, my // 8 * 8
 		rectb(block_x, block_y, 8, 8, 7)
 
 	# player sprite
-	spr(1, int(px), int(py), 11, w=2, h=2)
+	spr(1, int(p_cx - 4), int(p_cy - 4), 11, w=2, h=2)
 
 	# toolbar
 	for a in range(0, 4):
 		x = sw // 2 - 100 + a * 17
 		y = sh - 20
 
-		rectb(x - 1, y - 1, 18, 18, 5)
+		rectb(x - 1, y - 1, 18, 18, 1)
 
 		spr(81 + a, x, y, 0, 2)
 
+	for a in range(0, 2):
+		rectb(
+			sw // 2 - 101 + p_active_tool * 17 - a,
+			sh - 21 - a,
+			18 + a * 2, 18 + a * 2,
+			7)
+
 	# water progress bar
-	spr(39, 4, 4, 0)
-	perc = p_water / MAX_WATER
+	spr(40, 4, 4, 0)
+	perc = p_water / P_MAX_WATER
 	rect(15, 5, round(perc * 20), 6, 12)
 	rectb(15, 5, 20, 6, 7)
 
-	rectb(sw // 2 - 101 + p_active_tool * 17, sh - 21, 18, 18, 7)
 	
 	# mouse cursor
 	spr(80, mx - 1, my - 1, 11)
