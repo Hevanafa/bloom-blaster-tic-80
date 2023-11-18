@@ -91,12 +91,21 @@ def TIC():
 
 				if soil:
 					soil.watered = True
+			elif p_active_tool == 2:
+				soil = findSoilPatch(mx, my)
+
+				if soil:
+					soil.has_seeds = True
 
 
 	cls(0)
 
+	# soil patches
 	for soil in soil_patches:
 		spr(soil.watered and 66 or 65, soil.grid_x * 8, soil.grid_y * 8)
+
+		if soil.has_seeds:
+			spr(67, soil.grid_x * 8, soil.grid_y * 8, 0)
 
 	# highlight tile
 	if getDist(mx, px, my, py) < 1600:
