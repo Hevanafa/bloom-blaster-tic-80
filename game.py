@@ -16,7 +16,8 @@ sh = 136
 p_cx = sw / 2
 p_cy = sh / 2
 
-toolbar_start = sw // 2 - 100
+toolbar_left = sw // 2 - 100
+toolbar_top = sh - 20
 
 p_anim_frame = 0
 P_MAX_REACH = 1024
@@ -24,8 +25,8 @@ P_MAX_WATER = 4
 p_water = P_MAX_WATER
 p_money = 0
 
-well_cx = sw / 2
-well_cy = sh - 20
+well_cx = 20
+well_cy = sh / 2
 
 TOOL_SHOVEL = 0
 TOOL_PAIL = 1
@@ -94,8 +95,8 @@ def TIC():
 		last_mleft = mleft
 
 		if mleft:
-			if toolbar_start <= mx and mx <= toolbar_start + 17 * 4:
-				p_active_tool = (mx - toolbar_start) // 17
+			if toolbar_left <= mx and mx <= toolbar_left + 17 * 4 - 1 and toolbar_top <= my and my <= toolbar_top + 17:
+				p_active_tool = (mx - toolbar_left) // 17
 
 			if getDist(mx, p_cx, my, p_cy) <= P_MAX_REACH:
 				# Note: match-case isn't supported
@@ -153,8 +154,8 @@ def TIC():
 
 	# toolbar
 	for a in range(0, 4):
-		x = toolbar_start + a * 17
-		y = sh - 20
+		x = toolbar_left + a * 17
+		y = toolbar_top
 
 		rectb(x - 1, y - 1, 18, 18, 1)
 
