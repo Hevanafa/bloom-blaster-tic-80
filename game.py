@@ -18,8 +18,7 @@ p_cy = sh / 2
 
 toolbar_start = sw // 2 - 100
 
-# p_grid_x = 12
-# p_grid_y = 5
+p_anim_frame = 0
 P_MAX_REACH = 1024
 P_MAX_WATER = 4
 p_water = P_MAX_WATER
@@ -35,6 +34,7 @@ TOOL_SICKLE = 3
 
 p_active_tool = 0
 
+MAX_GROWTH_STAGE = 240.0
 
 class Soil:
 	def __init__(self, mx = -1, my = -1):
@@ -42,7 +42,7 @@ class Soil:
 		self.grid_y = getGridN(my)
 		self.watered = False
 		self.has_seeds = False
-		self.growth_stage = 0  # only increases when there are seeds
+		self.growth_stage = 0.0  # only increases when there are seeds
 
 soil_patches: list[Soil] = []
 
@@ -62,7 +62,7 @@ last_mleft = False
 
 def TIC():
 	global t, p_cx, p_cy, p_grid_x, p_grid_y, p_active_tool
-	global p_water, well_cx, well_cy
+	global p_anim_frame, p_water, well_cx, well_cy
 	global last_mleft
 
 	# hide mouse cursor
@@ -120,9 +120,13 @@ def TIC():
 	if p_water < P_MAX_WATER and p_active_tool == 1 and getDist(well_cx, p_cx, well_cy, p_cy) < 100:
 		p_water = P_MAX_WATER
 
+	p_anim_frame += 1
+	if p_anim_frame >= 60:
+		p_anim_frame = 0
+
 	for soil in soil_patches:
-		if soil.has_seeds and soil.watered and soil.growth_stage < 240:
-			soil.growth_stage += 1
+		if soil.has_seeds and soil.watered and soil.growth_stage < MAX_GROWTH_STAGE:
+			soil.growth_stage += 0.5
 
 
 	cls(5)
@@ -136,7 +140,7 @@ def TIC():
 		spr(soil.watered and 66 or 65, soil.grid_x * 8, soil.grid_y * 8)
 
 		if soil.has_seeds:
-			spr(69 + soil.growth_stage // 60, soil.grid_x * 8, soil.grid_y * 8, 0)
+			spr(int(69 + soil.growth_stage / 60), soil.grid_x * 8, soil.grid_y * 8, 0)
 
 	# highlight tile
 	if getDist(mx, p_cx, my, p_cy) < P_MAX_REACH:
@@ -144,7 +148,8 @@ def TIC():
 		rectb(block_x, block_y, 8, 8, 7)
 
 	# player sprite
-	spr(1, int(p_cx - 4), int(p_cy - 4), 11, w=2, h=2)
+	spr(1 + (p_anim_frame // 30) * 2, int(p_cx - 4), int(p_cy - 4), 11, w=2, h=2)
+
 
 	# toolbar
 	for a in range(0, 4):
